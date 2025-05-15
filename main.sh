@@ -1,13 +1,13 @@
 #!/bin/bash
 
-copyright_text="// © 2013 - 2025, TheUberCloud, Inc. doing business as Simr. All rights reserved"
+copyright_text="// © 2024 - 2025, CompanyName. All rights reserved"
 
 # Function to add copyright to a file if it doesn't already exist
 add_copyright() {
     local file="$1"
     
     # Skip if file already has the copyright text
-    if grep -q "© 2013 - 2025, TheUberCloud" "$file"; then
+    if grep -q "© 2024 - 2025, CompanyName." "$file"; then
         echo "Copyright already exists in: $file"
         return
     fi    # Added missing 'fi' here
