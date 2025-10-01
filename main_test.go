@@ -133,8 +133,12 @@ func TestRecursiveDirectory(t *testing.T) {
 	dir := t.TempDir()
 	file1 := filepath.Join(dir, "a.go")
 	file2 := filepath.Join(dir, "b.go")
-	os.WriteFile(file1, []byte("package main\n"), 0644)
-	os.WriteFile(file2, []byte("package main\n"), 0644)
+	if err := os.WriteFile(file1, []byte("package main\n"), 0644); err != nil {
+		t.Fatalf("failed to write file1: %v", err)
+	}
+	if err := os.WriteFile(file2, []byte("package main\n"), 0644); err != nil {
+		t.Fatalf("failed to write file2: %v", err)
+	}
 	runCLI(t, dir)
 	for _, file := range []string{file1, file2} {
 		content := readFile(t, file)

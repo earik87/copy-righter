@@ -43,7 +43,7 @@ func processFile(filePath, copyrightText string) error {
 		lines = append(lines, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		return err
+		return fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
 	if len(lines) == 0 {
@@ -86,7 +86,7 @@ func runCopyright(cmd *cobra.Command, args []string) {
 		if info.IsDir() {
 			err := filepath.Walk(file, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
-					return nil
+					return fmt.Errorf("error accessing path %s: %w", path, err)
 				}
 				if info.IsDir() {
 					return nil
@@ -119,6 +119,7 @@ func main() {
 	rootCmd.Flags().StringVar(&copyrightText, "copyright", "", "Copyright text to add (required)")
 	if err := rootCmd.MarkFlagRequired("copyright"); err != nil {
 		fmt.Fprintf(os.Stderr, "Error marking flag required: %v\n", err)
+		os.Exit(1)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
