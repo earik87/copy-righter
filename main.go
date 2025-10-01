@@ -86,11 +86,21 @@ func runCopyright(cmd *cobra.Command, args []string) {
 		if info.IsDir() {
 			err := filepath.Walk(file, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
-					return fmt.Errorf("error accessing path %s: %w", path, err)
+					fmt.Fprintf(os.Stderr, "Error accessing path %s: %v\n", path, err)
+					return nil // Continue walking
 				}
+
 				if info.IsDir() {
+					fmt.Printf("Skipping directory: %s\n", path)
 					return nil
 				}
+
+				if !isSupportedFile(path) {
+					fmt.Printf("Skipping unsupported file: %s\n", path)
+					return nil
+				}
+
+				fmt.Printf("Processing file: %s\n", path)
 				if err := processFile(path, copyrightText); err != nil {
 					fmt.Fprintf(os.Stderr, "Error processing file %s: %v\n", path, err)
 				}
@@ -105,6 +115,17 @@ func runCopyright(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
+}
+
+func isSupportedFile(filePath string) bool {
+	supportedExtensions := []string{".go"}
+	ext := strings.ToLower(filepath.Ext(filePath))
+	for _, supportedExt := range supportedExtensions {
+		if ext == supportedExt {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
