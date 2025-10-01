@@ -1,12 +1,6 @@
 # copy-righter
 
-`copy-righter` is a CLI tool that automatically adds or updates copyright headers in source code files. It supports multiple programming languages and can process individual files or entire directories recursively.
-
-## Features
-- Automatically detects and adds missing copyright headers.
-- Updates outdated copyright headers.
-- Supports `.go` files.
-- Processes individual files or entire directories.
+`copy-righter` is a CLI tool that automatically adds or updates copyright headers in source code files. It can process individual files or entire directories recursively.
 
 ## Installation
 
