@@ -3,7 +3,7 @@
 # Copyright constants - Make these configurable
 COPYRIGHT_START_YEAR="2013"
 COPYRIGHT_END_YEAR=$(date +%Y)
-COPYRIGHT_COMPANY="TheUberCloud, Inc. doing business as Simr. All rights reserved"
+COPYRIGHT_COMPANY="CompanyName. All rights reserved"
 
 # Extract company identifiers for detection (make this generic)
 # This will extract key words from the company name for copyright detection
