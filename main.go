@@ -43,12 +43,13 @@ func processFile(filePath, copyrightText string) (modified bool, err error) {
 		lines = append(lines, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading file %s: %w", filePath, err)
+		return false, fmt.Errorf("error reading file %s: %w", filePath, err)
 	}
 
 	if len(lines) == 0 {
 		// Empty file, just add copyright header and footer
-		return os.WriteFile(filePath, []byte(copyrightLine+"\n\n"+copyrightLine+"\n"), 0644)
+		err := os.WriteFile(filePath, []byte(copyrightLine+"\n\n"+copyrightLine+"\n"), 0644)
+		return true, err
 	}
 
 	headerUpdated := false
@@ -101,10 +102,11 @@ func processFile(filePath, copyrightText string) (modified bool, err error) {
 
 	if !headerUpdated && !footerUpdated {
 		fmt.Printf("Copyright already up to date in: %s\n", filePath)
-		return nil
+		return false, nil
 	}
 
-	return os.WriteFile(filePath, []byte(strings.Join(lines, "\n")), 0644)
+	err = os.WriteFile(filePath, []byte(strings.Join(lines, "\n")), 0644)
+	return true, err
 }
 
 func runCopyright(cmd *cobra.Command, args []string) {
@@ -137,7 +139,7 @@ func runCopyright(cmd *cobra.Command, args []string) {
 				}
 
 				fmt.Printf("Processing file: %s\n", path)
-				if err := processFile(path, copyrightText); err != nil {
+				if _, err := processFile(path, copyrightText); err != nil {
 					fmt.Fprintf(os.Stderr, "Error processing file %s: %v\n", path, err)
 				}
 				return nil
@@ -146,7 +148,7 @@ func runCopyright(cmd *cobra.Command, args []string) {
 				fmt.Fprintf(os.Stderr, "Error walking directory %s: %v\n", file, err)
 			}
 		} else {
-			if err := processFile(file, copyrightText); err != nil {
+			if _, err := processFile(file, copyrightText); err != nil {
 				fmt.Fprintf(os.Stderr, "Error processing file %s: %v\n", file, err)
 			}
 		}
