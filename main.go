@@ -25,11 +25,11 @@ func formatCopyrightLine(copyrightText string) string {
 	return "// " + trimmed
 }
 
-func processFile(filePath, copyrightText string) error {
+func processFile(filePath, copyrightText string) (modified bool, err error) {
 	copyrightLine := formatCopyrightLine(copyrightText)
 	file, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() {
 		if cerr := file.Close(); cerr != nil {
@@ -47,28 +47,64 @@ func processFile(filePath, copyrightText string) error {
 	}
 
 	if len(lines) == 0 {
-		// Empty file, just add copyright
-		return os.WriteFile(filePath, []byte(copyrightLine+"\n\n"), 0644)
+		// Empty file, just add copyright header and footer
+		return os.WriteFile(filePath, []byte(copyrightLine+"\n\n"+copyrightLine+"\n"), 0644)
 	}
 
+	headerUpdated := false
+	footerUpdated := false
+
+	// Check and update header
 	firstLine := lines[0]
 	currentHash := hashString(firstLine)
 	if currentHash == hashString(copyrightLine) {
+		fmt.Printf("Copyright header already up to date in: %s\n", filePath)
+		headerUpdated = true
+	} else if strings.HasPrefix(firstLine, "//") {
+		fmt.Printf("Updating copyright header in: %s (hash mismatch)\n", filePath)
+		lines[0] = copyrightLine
+		if len(lines) > 1 && lines[1] == "" {
+			// Keep blank line after header
+		} else {
+			lines = append([]string{copyrightLine, ""}, lines[1:]...)
+		}
+		headerUpdated = true
+	} else {
+		// No copyright found, add at top
+		fmt.Printf("Adding copyright header to: %s\n", filePath)
+		lines = append([]string{copyrightLine, ""}, lines...)
+		headerUpdated = true
+	}
+
+	// Check and update footer
+	lastLine := lines[len(lines)-1]
+	lastLineHash := hashString(lastLine)
+	if lastLineHash == hashString(copyrightLine) {
+		fmt.Printf("Copyright footer already up to date in: %s\n", filePath)
+		footerUpdated = true
+	} else if strings.HasPrefix(lastLine, "//") {
+		fmt.Printf("Updating copyright footer in: %s (hash mismatch)\n", filePath)
+		// Check if there's a blank line before the footer comment
+		if len(lines) > 1 && lines[len(lines)-2] == "" {
+			lines[len(lines)-1] = copyrightLine
+		} else {
+			lines[len(lines)-1] = copyrightLine
+			lines = append(lines[:len(lines)-1], "", copyrightLine)
+		}
+		footerUpdated = true
+	} else {
+		// No copyright footer found, add at bottom
+		fmt.Printf("Adding copyright footer to: %s\n", filePath)
+		lines = append(lines, "", copyrightLine)
+		footerUpdated = true
+	}
+
+	if !headerUpdated && !footerUpdated {
 		fmt.Printf("Copyright already up to date in: %s\n", filePath)
 		return nil
 	}
 
-	if strings.HasPrefix(firstLine, "//") {
-		fmt.Printf("Updating copyright in: %s (hash mismatch)\n", filePath)
-		// Replace first line
-		newContent := append([]string{copyrightLine, ""}, lines[1:]...)
-		return os.WriteFile(filePath, []byte(strings.Join(newContent, "\n")), 0644)
-	}
-
-	// No copyright found, add at top
-	fmt.Printf("Adding copyright to: %s\n", filePath)
-	newContent := append([]string{copyrightLine, ""}, lines...)
-	return os.WriteFile(filePath, []byte(strings.Join(newContent, "\n")), 0644)
+	return os.WriteFile(filePath, []byte(strings.Join(lines, "\n")), 0644)
 }
 
 func runCopyright(cmd *cobra.Command, args []string) {
