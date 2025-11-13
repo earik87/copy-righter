@@ -105,7 +105,7 @@ func processFile(filePath, copyrightText string) (modified bool, err error) {
 		return false, nil
 	}
 
-	err = os.WriteFile(filePath, []byte(strings.Join(lines, "\n")), 0644)
+	err = os.WriteFile(filePath, []byte(strings.Join(lines, "\n")+"\n"), 0644)
 	return true, err
 }
 
