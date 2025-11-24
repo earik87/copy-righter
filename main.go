@@ -27,6 +27,14 @@ func formatCopyrightLine(copyrightText string) string {
 
 func processFile(filePath, copyrightText string) (modified bool, err error) {
 	copyrightLine := formatCopyrightLine(copyrightText)
+
+	// Read the entire file to check for trailing newline
+	originalContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return false, err
+	}
+	hadTrailingNewline := len(originalContent) > 0 && originalContent[len(originalContent)-1] == '\n'
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false, err
@@ -54,6 +62,7 @@ func processFile(filePath, copyrightText string) (modified bool, err error) {
 
 	headerUpdated := false
 	footerUpdated := false
+	footerAdded := false // Track if we're adding a new footer vs updating
 
 	// Check and update header
 	firstLine := lines[0]
@@ -98,6 +107,7 @@ func processFile(filePath, copyrightText string) (modified bool, err error) {
 		fmt.Printf("Adding copyright footer to: %s\n", filePath)
 		lines = append(lines, "", copyrightLine)
 		footerUpdated = true
+		footerAdded = true
 	}
 
 	if !headerUpdated && !footerUpdated {
@@ -105,7 +115,20 @@ func processFile(filePath, copyrightText string) (modified bool, err error) {
 		return false, nil
 	}
 
-	err = os.WriteFile(filePath, []byte(strings.Join(lines, "\n")+"\n"), 0644)
+	// Determine if we should add trailing newline:
+	// - If adding a new footer: always add trailing newline (Go idiomatic)
+	// - If updating existing footer: preserve original format (developer's responsibility)
+	content := strings.Join(lines, "\n")
+	if footerAdded {
+		// New footer - add trailing newline
+		content += "\n"
+	} else if hadTrailingNewline {
+		// Updating footer and original had trailing newline - preserve it
+		content += "\n"
+	}
+	// Otherwise: updating footer without original trailing newline - don't add one
+
+	err = os.WriteFile(filePath, []byte(content), 0644)
 	return true, err
 }
 

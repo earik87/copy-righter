@@ -476,3 +476,90 @@ func TestMultipleFilesHeaderAndFooter(t *testing.T) {
 		}
 	}
 }
+
+// Tests for trailing newline behavior
+
+func TestNewFooterAddsTrailingNewline(t *testing.T) {
+	// Test that when adding a NEW footer, a trailing newline is added (Go idiomatic)
+	initial := "package main\n\nfunc main() {}\n"
+	file := writeTempFile(t, initial)
+	runCLI(t, file)
+	content := readFile(t, file)
+
+	// File should end with a newline after the footer
+	if !strings.HasSuffix(content, "\n") {
+		t.Errorf("expected trailing newline after adding new footer, but file doesn't end with newline")
+	}
+
+	// Should end with: "// <copyright>\n"
+	expectedEnding := "// " + copyright + "\n"
+	if !strings.HasSuffix(content, expectedEnding) {
+		t.Errorf("expected file to end with %q, got %q", expectedEnding, content[len(content)-len(expectedEnding):])
+	}
+}
+
+func TestUpdatingFooterWithoutTrailingNewlinePreservesFormat(t *testing.T) {
+	// Test that when UPDATING an existing footer that has NO trailing newline,
+	// we preserve that format (developer's responsibility)
+	initial := "package main\n\nfunc main() {}\n\n// Old copyright footer"
+	file := writeTempFile(t, initial)
+	runCLI(t, file)
+	content := readFile(t, file)
+
+	// The updated footer should NOT have a trailing newline added
+	expectedEnding := "// " + copyright
+	actualEnding := strings.TrimSuffix(content, "\n")
+	if !strings.HasSuffix(actualEnding, expectedEnding) {
+		t.Errorf("expected file to end with %q (no trailing newline), got %q", expectedEnding, actualEnding)
+	}
+
+	// Verify it doesn't end with newline after the copyright
+	if strings.HasSuffix(content, "// "+copyright+"\n") {
+		t.Errorf("should NOT have added trailing newline when updating existing footer without one")
+	}
+}
+
+func TestUpdatingFooterWithTrailingNewlinePreservesIt(t *testing.T) {
+	// Test that when UPDATING an existing footer that HAS a trailing newline,
+	// we preserve that format
+	initial := "package main\n\nfunc main() {}\n\n// Old copyright footer\n"
+	file := writeTempFile(t, initial)
+	runCLI(t, file)
+	content := readFile(t, file)
+
+	// The updated footer should preserve the trailing newline
+	expectedEnding := "// " + copyright + "\n"
+	if !strings.HasSuffix(content, expectedEnding) {
+		t.Errorf("expected file to end with %q (with trailing newline), got %q", expectedEnding, content[len(content)-100:])
+	}
+}
+
+func TestIdempotencyPreservesTrailingNewline(t *testing.T) {
+	// Test that running multiple times preserves the trailing newline from first run
+	initial := "package main\n\nfunc main() {}\n"
+	file := writeTempFile(t, initial)
+
+	// First run - adds footer with trailing newline
+	runCLI(t, file)
+	firstRun := readFile(t, file)
+
+	if !strings.HasSuffix(firstRun, "\n") {
+		t.Errorf("first run should add trailing newline")
+	}
+
+	// Second run - should preserve exact format
+	runCLI(t, file)
+	secondRun := readFile(t, file)
+
+	if firstRun != secondRun {
+		t.Errorf("second run changed file content:\nFirst:\n%q\n\nSecond:\n%q", firstRun, secondRun)
+	}
+
+	// Third run - still identical
+	runCLI(t, file)
+	thirdRun := readFile(t, file)
+
+	if firstRun != thirdRun {
+		t.Errorf("third run changed file content")
+	}
+}
